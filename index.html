@@ -44,17 +44,14 @@
             background-color: #ff4757;
         }
 
-        /* Itatago muna ang apoy sa simula hanggang hindi pa napipindot ang button */
         .candle::after, .candle .flame {
             display: none !important;
         }
 
-        /* Lalabas lang ang apoy kapag may class na 'is-lit' */
         .candle.is-lit::after, .candle.is-lit .flame {
             display: block !important;
         }
 
-        /* Kapag umihip na o hinipan, mawawala ulit ang apoy */
         .candle.blown::after, .candle.blown .flame {
             display: none !important;
         }
@@ -134,7 +131,6 @@
         startBtn.style.display = "none";
         document.getElementById("subTitle").textContent = "Make a wish and BLOW the candles! 🌬️";
         
-        // Dito natin sisindihan ang mga kandila pagka-click ng button
         const candles = document.querySelectorAll(".candle");
         candles.forEach(candle => {
             candle.classList.add("is-lit");
@@ -204,7 +200,6 @@
     cake.addEventListener("click", () => {
         if (!blown) {
             startBtn.style.display = "none";
-            // Kung clinick ang cake nang hindi pa napipindot ang button, sisindihan muna saglit tapos papatayin
             const candles = document.querySelectorAll(".candle");
             candles.forEach(candle => candle.classList.add("is-lit"));
             
