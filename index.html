@@ -4,86 +4,122 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Birthday Cake 🎂</title>
-    <link rel="stylesheet" href="style.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-            href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap"
-            rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet" />
     <style>
+        body {
+            font-family: 'Pixelify Sans', sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+        }
         #mainTitle {
             font-size: 32px;
-            font-family: 'Pixelify Sans', sans-serif;
             margin-bottom: 8px;
         }
-
         #subTitle {
             font-size: 18px;
-            font-family: 'Pixelify Sans', sans-serif;
             color: #555;
+            margin-bottom: 20px;
+        }
+        /* Style for the interactive click button */
+        #startBtn {
+            font-family: 'Pixelify Sans', sans-serif;
+            font-size: 16px;
+            padding: 10px 20px;
+            background-color: #ff6b81;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        #startBtn:hover {
+            transform: scale(1.05);
+        }
+        .cake-container {
+            margin-top: 20px;
+            position: relative;
+            display: inline-block;
+        }
+        /* Placeholder styling for standard elements */
+        .cake {
+            width: 150px;
+            height: 100px;
+            background: #fbc531;
+            border-radius: 10px 10px 0 0;
+            position: relative;
+        }
+        .candle {
+            width: 8px;
+            height: 30px;
+            background: #4cd137;
+            position: absolute;
+            display: inline-block;
+        }
+        .candle::after {
+            content: '🔥';
+            position: absolute;
+            top: -18px;
+            left: -4px;
+            font-size: 12px;
+        }
+        .candle.blown::after {
+            content: '💨';
+            opacity: 0;
+            transition: opacity 1s ease-out;
         }
     </style>
 </head>
 <body>
 <div class="container">
     <div id="birthdayText"></div>
+    <!-- Added a button to satisfy browser user-interaction rules -->
+    <button id="startBtn">Light the Candles 🕯️</button>
     <div class="cake-container">
         <div class="cake" id="cake"></div>
     </div>
 </div>
 
 <script>
-    // Read URL params
     const params = new URLSearchParams(window.location.search);
-    const name = params.get("name") || "Aliaj";
+    const name = params.get("name") || "Friend";
     let candleCount = parseInt(params.get("candles")) || 4;
     candleCount = Math.min(Math.max(candleCount, 1), 30);
 
     const birthdayText = document.getElementById("birthdayText");
     birthdayText.innerHTML = `
         <div id="mainTitle">Happy Birthday, ${name}!</div>
-        <div id="subTitle">Make a wish and blow candles.</div>
+        <div id="subTitle">Click the button below to start!</div>
       `;
 
     const cake = document.getElementById("cake");
+    const startBtn = document.getElementById("startBtn");
 
-    const colors = [
-        "green-candle",
-        "purple-candle",
-        "blue-candle",
-        "yellow-candle",
-    ];
-    const CAKE_VISUAL_WIDTH = 35;
+    const colors = ["green-candle", "purple-candle", "blue-candle", "yellow-candle"];
+    const CAKE_VISUAL_WIDTH = 120; 
 
     function createCandles(count) {
         cake.innerHTML = "";
-        const CANDLE_VISUAL_WIDTH = 2;
-        const availableWidth = CAKE_VISUAL_WIDTH;
         const candlesPerRow = 6;
-        const rowCount = Math.ceil(count / candlesPerRow);
-        const shiftAmount = 4;
 
         for (let i = 0; i < count; i++) {
             const candle = document.createElement("div");
             candle.classList.add("candle");
-            const colorClass = colors[Math.floor(Math.random() * colors.length)];
-            candle.classList.add(colorClass);
-
-            const row = Math.floor(i / candlesPerRow);
+            
             const col = i % candlesPerRow;
-            const totalCandlesInRow = Math.min(
-                candlesPerRow,
-                count - row * candlesPerRow
-            );
-            const rowSpacing = availableWidth / (totalCandlesInRow + 1);
+            const row = Math.floor(i / candlesPerRow);
 
-            const leftBase = rowSpacing * (col + 1) - CANDLE_VISUAL_WIDTH / 2 + 5;
-            const rowShift = row % 2 === 0 ? 0 : shiftAmount;
-
-            candle.style.position = "absolute";
-            candle.style.top = `${10 + row * 3}px`;
-            candle.style.left = `${leftBase - rowShift + 4}px`;
+            candle.style.top = `${-20 + row * 10}px`;
+            candle.style.left = `${20 + col * 18}px`;
 
             cake.appendChild(candle);
         }
@@ -91,22 +127,23 @@
 
     createCandles(candleCount);
 
-    // === Microphone / Blow Detection ===
+    // This handles the browser block. It only initializes the microphone on click.
+    startBtn.addEventListener("click", () => {
+        startBtn.style.display = "none"; // Hide button after clicking
+        document.getElementById("subTitle").textContent = "Now, lean in close and BLOW! 🌬️";
+        startMicDetection();
+    });
+
     async function startMicDetection() {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                audio: true,
-            });
-            const audioContext = new (window.AudioContext ||
-                window.webkitAudioContext)();
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
             const source = audioContext.createMediaStreamSource(stream);
             const analyser = audioContext.createAnalyser();
             analyser.fftSize = 512;
 
             source.connect(analyser);
-
             const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
             let blown = false;
 
             function detectBlow() {
@@ -114,7 +151,6 @@
 
                 let highFreqSum = 0;
                 let lowFreqSum = 0;
-
                 const midpoint = dataArray.length / 2;
 
                 for (let i = 0; i < dataArray.length; i++) {
@@ -127,46 +163,47 @@
 
                 const highAvg = highFreqSum / (dataArray.length / 2);
                 const lowAvg = lowFreqSum / (dataArray.length / 2);
-
                 const ratio = highAvg / (lowAvg + 1);
 
-                const BLOW_RATIO_THRESHOLD = 0.3;
+                // Lowered threshold to 0.25 so it detects blowing much easier!
+                const BLOW_RATIO_THRESHOLD = 0.25;
 
                 if (ratio > BLOW_RATIO_THRESHOLD && !blown) {
                     blown = true;
                     blowOutCandles();
                 }
 
-                requestAnimationFrame(detectBlow);
+                if (!blown) {
+                    requestAnimationFrame(detectBlow);
+                }
             }
 
             detectBlow();
         } catch (err) {
             console.error("Mic access error:", err);
+            alert("Please allow microphone access to blow out the candles!");
         }
     }
 
     function blowOutCandles() {
         const candles = document.querySelectorAll(".candle");
         candles.forEach((candle) => {
-            const delay = Math.random() * 1000;
+            const delay = Math.random() * 800;
             setTimeout(() => {
-                colors.forEach((color) => {
-                    if (candle.classList.contains(color)) {
-                        candle.classList.add("blown");
-                    }
-                });
+                candle.classList.add("blown");
             }, delay);
         });
 
-        // Update subTitle after short delay
         setTimeout(() => {
             const subTitle = document.getElementById("subTitle");
             subTitle.textContent = `Yayy! Wishing you the happiest birthday ever!! 🎉`;
         }, 1200);
     }
 
-    startMicDetection();
+    // Backup Click Action just in case they are on a device without a mic!
+    cake.addEventListener("click", () => {
+        blowOutCandles();
+    });
 </script>
 </body>
 </html>
