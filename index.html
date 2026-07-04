@@ -22,48 +22,17 @@
             font-size: 18px;
             font-family: 'Pixelify Sans', sans-serif;
             color: #555;
-            margin-bottom: 15px;
         }
-
-        #startBtn {
-            font-family: 'Pixelify Sans', sans-serif;
-            font-size: 16px;
-            padding: 10px 20px;
-            background-color: #ff6b81;
-            color: white;
-            border: none;
-            border-radius: 20px;
+        
+        .cake-container {
             cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.2s, background-color 0.2s;
-            margin-bottom: 20px;
-        }
-
-        #startBtn:hover {
-            transform: scale(1.05);
-            background-color: #ff4757;
-        }
-
-        .candle::after, .candle .flame {
-            display: none !important;
-        }
-
-        .candle.is-lit::after, .candle.is-lit .flame {
-            display: block !important;
-        }
-
-        .candle.blown::after, .candle.blown .flame {
-            display: none !important;
         }
     </style>
 </head>
 <body>
-<div class="container" style="text-align: center; margin-top: 50px;">
+<div class="container">
     <div id="birthdayText"></div>
-    
-    <button id="startBtn">Light the Candles 🕯️</button>
-    
-    <div class="cake-container" style="cursor: pointer;">
+    <div class="cake-container">
         <div class="cake" id="cake"></div>
     </div>
 </div>
@@ -77,11 +46,10 @@
     const birthdayText = document.getElementById("birthdayText");
     birthdayText.innerHTML = `
         <div id="mainTitle">Happy Birthday, ${name}!</div>
-        <div id="subTitle">Click the button below to light up the cake!</div>
+        <div id="subTitle">Make a wish and blow candles.</div>
       `;
 
     const cake = document.getElementById("cake");
-    const startBtn = document.getElementById("startBtn");
 
     const colors = [
         "green-candle",
@@ -96,6 +64,7 @@
         const CANDLE_VISUAL_WIDTH = 2;
         const availableWidth = CAKE_VISUAL_WIDTH;
         const candlesPerRow = 6;
+        const rowCount = Math.ceil(count / candlesPerRow);
         const shiftAmount = 4;
 
         for (let i = 0; i < count; i++) {
@@ -127,57 +96,62 @@
 
     let blown = false;
 
-    startBtn.addEventListener("click", () => {
-        startBtn.style.display = "none";
-        document.getElementById("subTitle").textContent = "Make a wish and BLOW the candles! 🌬️";
-        
-        const candles = document.querySelectorAll(".candle");
-        candles.forEach(candle => {
-            candle.classList.add("is-lit");
-        });
-
-        startMicDetection();
-    });
-
     async function startMicDetection() {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: true,
+            });
+            const audioContext = new (window.AudioContext ||
+                window.webkitAudioContext)();
             const source = audioContext.createMediaStreamSource(stream);
-            
-            const processor = audioContext.createScriptProcessor(2048, 1, 1);
-            
-            source.connect(processor);
-            processor.connect(audioContext.destination);
+            const analyser = audioContext.createAnalyser();
+            analyser.fftSize = 512;
 
-            processor.onaudioprocess = function(e) {
+            source.connect(analyser);
+
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+            function detectBlow() {
                 if (blown) return;
                 
-                const inputData = e.inputBuffer.getChannelData(0);
-                let sum = 0;
-                
-                for (let i = 0; i < inputData.length; i++) {
-                    sum += inputData[i] * inputData[i];
+                analyser.getByteFrequencyData(dataArray);
+
+                let highFreqSum = 0;
+                let lowFreqSum = 0;
+
+                const midpoint = dataArray.length / 2;
+
+                for (let i = 0; i < dataArray.length; i++) {
+                    if (i < midpoint) {
+                        lowFreqSum += dataArray[i];
+                    } else {
+                        highFreqSum += dataArray[i];
+                    }
                 }
-                const volume = Math.sqrt(sum / inputData.length);
-                
-                if (volume > 0.12) {
+
+                const highAvg = highFreqSum / (dataArray.length / 2);
+                const lowAvg = lowFreqSum / (dataArray.length / 2);
+
+                const ratio = highAvg / (lowAvg + 1);
+
+                const BLOW_RATIO_THRESHOLD = 0.2;
+
+                if (ratio > BLOW_RATIO_THRESHOLD && !blown) {
                     blown = true;
                     blowOutCandles();
-                    
-                    stream.getTracks().forEach(track => track.stop());
-                    processor.disconnect();
                 }
-            };
+
+                requestAnimationFrame(detectBlow);
+            }
+
+            detectBlow();
         } catch (err) {
-            console.error(err);
-            alert("Please allow microphone access to blow out the candles, or just click the cake directly!");
+            console.error("Mic access error:", err);
         }
     }
 
     function blowOutCandles() {
-        blown = true; 
-        
+        blown = true;
         const candles = document.querySelectorAll(".candle");
         candles.forEach((candle) => {
             const delay = Math.random() * 1000;
@@ -185,7 +159,6 @@
                 colors.forEach((color) => {
                     if (candle.classList.contains(color)) {
                         candle.classList.add("blown");
-                        candle.classList.remove("is-lit");
                     }
                 });
             }, delay);
@@ -199,13 +172,11 @@
 
     cake.addEventListener("click", () => {
         if (!blown) {
-            startBtn.style.display = "none";
-            const candles = document.querySelectorAll(".candle");
-            candles.forEach(candle => candle.classList.add("is-lit"));
-            
             blowOutCandles();
         }
     });
+
+    startMicDetection();
 </script>
 </body>
 </html>
